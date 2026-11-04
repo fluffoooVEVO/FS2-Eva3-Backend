@@ -1,0 +1,13 @@
+package Kambang.plop;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class PlopApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(PlopApplication.class, args);
+	}
+
+}
