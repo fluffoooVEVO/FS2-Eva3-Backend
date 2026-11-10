@@ -1,4 +1,4 @@
-package Kambang.plop.model;
+package cl.duoc.kembang.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

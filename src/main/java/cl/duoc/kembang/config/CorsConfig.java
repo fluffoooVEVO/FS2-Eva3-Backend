@@ -1,4 +1,4 @@
-package Kambang.plop.config;
+package cl.duoc.kembang.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
