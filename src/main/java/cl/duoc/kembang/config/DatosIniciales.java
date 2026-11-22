@@ -6,8 +6,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import cl.duoc.kembang.model.Categoria;
+import cl.duoc.kembang.model.Estado;
 import cl.duoc.kembang.model.Producto;
 import cl.duoc.kembang.repository.CategoriaRepository;
+import cl.duoc.kembang.repository.EstadoRepository;
 import cl.duoc.kembang.repository.ProductoRepository;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,14 +19,31 @@ public class DatosIniciales implements CommandLineRunner {
 
     private final CategoriaRepository categoriaRepository;
     private final ProductoRepository productoRepository;
+    private final EstadoRepository estadoRepository;
 
-    public DatosIniciales(CategoriaRepository categoriaRepository, ProductoRepository productoRepository) {
+    public DatosIniciales(CategoriaRepository categoriaRepository, ProductoRepository productoRepository,
+        EstadoRepository estadoRepository) {
         this.categoriaRepository = categoriaRepository;
         this.productoRepository = productoRepository;
+        this.estadoRepository = estadoRepository;
     }
 
     @Override
     public void run(String... args) {
+        cargarEstados();
+        cargarProductos();
+    }
+
+    private void cargarEstados() {
+        for (String nombre : List.of("PENDIENTE", "PAGADO", "ENVIADO", "ENTREGADO")) {
+            if (estadoRepository.findByNombre(nombre).isEmpty()) {
+                estadoRepository.save(new Estado(null, nombre));
+                log.info("Estado creado: {}", nombre);
+            }
+        }
+    }
+
+    private void cargarProductos() {
         if (productoRepository.count() > 0) {
             log.info("Ya existen productos: no se cargan datos iniciales");
             return;
