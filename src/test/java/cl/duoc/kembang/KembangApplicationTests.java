@@ -1,10 +1,10 @@
-package Kambang.plop;
+package cl.duoc.kembang;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class PlopApplicationTests {
+class KembangApplicationTests {
 
 	@Test
 	void contextLoads() {
