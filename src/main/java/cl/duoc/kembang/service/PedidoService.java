@@ -12,6 +12,7 @@ import cl.duoc.kembang.dto.DetallePedidoDTO;
 import cl.duoc.kembang.dto.ItemPedidoDTO;
 import cl.duoc.kembang.dto.PedidoDTO;
 import cl.duoc.kembang.exception.ResourceNotFoundException;
+import cl.duoc.kembang.exception.StockInsuficienteException;
 import cl.duoc.kembang.model.DetallePedido;
 import cl.duoc.kembang.model.Estado;
 import cl.duoc.kembang.model.Pago;
@@ -56,6 +57,13 @@ public class PedidoService {
             Producto producto = productoRepository.findById(item.getProductoId())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "No existe el producto con id " + item.getProductoId()));
+
+            if (producto.getStock() < item.getCantidad()) {
+                throw new StockInsuficienteException("Stock insuficiente para " + producto.getNombre()
+                        + ": disponible " + producto.getStock() + ", solicitado " + item.getCantidad());
+            }
+            producto.setStock(producto.getStock() - item.getCantidad());
+
             int precio = precioConDescuento(producto);
             total += precio * item.getCantidad();
             detalles.add(new DetallePedido(null, null, producto, item.getCantidad(), precio));
