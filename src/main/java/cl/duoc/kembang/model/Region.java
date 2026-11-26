@@ -1,35 +1,30 @@
 package cl.duoc.kembang.model;
 
-import java.util.List;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-@Data 
-@AllArgsConstructor 
-@NoArgsConstructor 
-@Entity 
-@Table(name = "region")
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Entity
+@Table(name = "regiones")
 public class Region {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @NotBlank(message = "El nombre de la region es obligatorio")
-    @Size(min = 3, max = 50)
-    @Column(name = "region", nullable = false)
+    @Size(min = 3, max = 50, message = "El nombre de la region debe tener entre 3 y 50 caracteres")
+    @Column(unique = true)
     private String nombre;
-
-    @OneToMany(mappedBy = "region")
-    private List<Comuna> comuna;
 }
