@@ -15,7 +15,7 @@ import cl.duoc.kembang.service.PedidoService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/pedidos")
+@RequestMapping("/api/v1/pedidos")
 public class PedidoController {
 
     private final PedidoService pedidoService;

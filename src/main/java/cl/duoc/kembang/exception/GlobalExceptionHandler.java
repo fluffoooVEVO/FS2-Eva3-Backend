@@ -24,15 +24,27 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, String>> manejarRecursoNoEncontrado(ResourceNotFoundException excepcion) {
-        Map<String, String> respuestaError = new HashMap<>();
-        respuestaError.put("error", excepcion.getMessage());
-        return new ResponseEntity<>(respuestaError, HttpStatus.NOT_FOUND);
+        return respuesta(excepcion.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(StockInsuficienteException.class)
     public ResponseEntity<Map<String, String>> manejarStockInsuficiente(StockInsuficienteException excepcion) {
-        Map<String, String> respuestaError = new HashMap<>();
-        respuestaError.put("error", excepcion.getMessage());
-        return new ResponseEntity<>(respuestaError, HttpStatus.BAD_REQUEST);
+        return respuesta(excepcion.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(EmailEnUsoException.class)
+    public ResponseEntity<Map<String, String>> manejarEmailEnUso(EmailEnUsoException excepcion) {
+        return respuesta(excepcion.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<Map<String, String>> manejarCredencialesInvalidas(CredencialesInvalidasException excepcion) {
+        return respuesta(excepcion.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    private ResponseEntity<Map<String, String>> respuesta(String mensaje, HttpStatus estado) {
+        Map<String, String> cuerpo = new HashMap<>();
+        cuerpo.put("error", mensaje);
+        return new ResponseEntity<>(cuerpo, estado);
     }
 }
