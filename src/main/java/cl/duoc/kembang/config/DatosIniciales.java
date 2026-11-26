@@ -2,15 +2,21 @@ package cl.duoc.kembang.config;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import cl.duoc.kembang.model.Categoria;
 import cl.duoc.kembang.model.Estado;
 import cl.duoc.kembang.model.Producto;
+import cl.duoc.kembang.model.Rol;
+import cl.duoc.kembang.model.Usuario;
 import cl.duoc.kembang.repository.CategoriaRepository;
 import cl.duoc.kembang.repository.EstadoRepository;
 import cl.duoc.kembang.repository.ProductoRepository;
+import cl.duoc.kembang.repository.RolRepository;
+import cl.duoc.kembang.repository.UsuarioRepository;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -20,17 +26,32 @@ public class DatosIniciales implements CommandLineRunner {
     private final CategoriaRepository categoriaRepository;
     private final ProductoRepository productoRepository;
     private final EstadoRepository estadoRepository;
+    private final RolRepository rolRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final String adminEmail;
+    private final String adminPassword;
 
     public DatosIniciales(CategoriaRepository categoriaRepository, ProductoRepository productoRepository,
-        EstadoRepository estadoRepository) {
+        EstadoRepository estadoRepository, RolRepository rolRepository,
+        UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
+        @Value("${app.admin.email}") String adminEmail,
+        @Value("${app.admin.password}") String adminPassword) {
         this.categoriaRepository = categoriaRepository;
         this.productoRepository = productoRepository;
         this.estadoRepository = estadoRepository;
+        this.rolRepository = rolRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.adminEmail = adminEmail;
+        this.adminPassword = adminPassword;
     }
 
     @Override
     public void run(String... args) {
         cargarEstados();
+        cargarRoles();
+        cargarAdmin();
         cargarProductos();
     }
 
@@ -41,6 +62,25 @@ public class DatosIniciales implements CommandLineRunner {
                 log.info("Estado creado: {}", nombre);
             }
         }
+    }
+
+    private void cargarRoles() {
+        for (String nombre : List.of("ADMIN", "VENDEDOR", "CLIENTE")) {
+            if (rolRepository.findByNombre(nombre).isEmpty()) {
+                rolRepository.save(new Rol(null, nombre));
+                log.info("Rol creado: {}", nombre);
+            }
+        }
+    }
+
+    private void cargarAdmin() {
+        if (usuarioRepository.existsByEmail(adminEmail)) {
+            return;
+        }
+        Rol admin = rolRepository.findByNombre("ADMIN").orElseThrow();
+        usuarioRepository.save(new Usuario(null, "Administrador", adminEmail,
+                passwordEncoder.encode(adminPassword), admin));
+        log.info("Administrador inicial creado: {}", adminEmail);
     }
 
     private void cargarProductos() {
