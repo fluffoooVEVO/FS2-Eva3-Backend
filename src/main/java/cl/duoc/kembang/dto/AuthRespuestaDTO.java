@@ -10,8 +10,6 @@ import lombok.NoArgsConstructor;
 public class AuthRespuestaDTO {
 
     private String token;
-    private String tipo;
-    private Long expiraEn;
     private String nombre;
     private String email;
     private String rol;

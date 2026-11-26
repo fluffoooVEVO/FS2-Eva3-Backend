@@ -21,9 +21,7 @@ import cl.duoc.kembang.model.Rol;
 import cl.duoc.kembang.model.Usuario;
 import cl.duoc.kembang.repository.RolRepository;
 import cl.duoc.kembang.repository.UsuarioRepository;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @Service
 public class AuthService {
 
@@ -44,41 +42,35 @@ public class AuthService {
     }
 
     public AuthRespuestaDTO registrar(RegistroDTO dto) {
-        String email = dto.getEmail().trim().toLowerCase();
+        String email = dto.getEmail().toLowerCase();
         if (usuarioRepository.existsByEmail(email)) {
             throw new EmailEnUsoException("Ya existe una cuenta con ese correo");
         }
         Rol cliente = rolRepository.findByNombre("CLIENTE")
                 .orElseThrow(() -> new ResourceNotFoundException("No existe el rol CLIENTE"));
-        Usuario usuario = usuarioRepository.save(new Usuario(null, dto.getNombre().trim(), email,
-                passwordEncoder.encode(dto.getPassword()), cliente));
-        log.info("Usuario registrado: {}", email);
-        return generarRespuesta(usuario);
+        String passwordCifrada = passwordEncoder.encode(dto.getPassword());
+        Usuario usuario = usuarioRepository.save(new Usuario(null, dto.getNombre(), email, passwordCifrada, cliente));
+        return crearRespuesta(usuario);
     }
 
     public AuthRespuestaDTO login(LoginDTO dto) {
-        String email = dto.getEmail().trim().toLowerCase();
-        Usuario usuario = usuarioRepository.findByEmail(email)
-                .filter(u -> passwordEncoder.matches(dto.getPassword(), u.getPassword()))
+        Usuario usuario = usuarioRepository.findByEmail(dto.getEmail().toLowerCase())
                 .orElseThrow(() -> new CredencialesInvalidasException("Correo o contraseña incorrectos"));
-        log.info("Inicio de sesion: {}", email);
-        return generarRespuesta(usuario);
+        if (!passwordEncoder.matches(dto.getPassword(), usuario.getPassword())) {
+            throw new CredencialesInvalidasException("Correo o contraseña incorrectos");
+        }
+        return crearRespuesta(usuario);
     }
 
-    private AuthRespuestaDTO generarRespuesta(Usuario usuario) {
-        Instant ahora = Instant.now();
-        long segundos = minutosExpiracion * 60;
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("kembang-backend")
-                .issuedAt(ahora)
-                .expiresAt(ahora.plusSeconds(segundos))
+    private AuthRespuestaDTO crearRespuesta(Usuario usuario) {
+        String rol = usuario.getRol().getNombre();
+        JwtClaimsSet datos = JwtClaimsSet.builder()
                 .subject(usuario.getEmail())
-                .claim("rol", usuario.getRol().getNombre())
-                .claim("nombre", usuario.getNombre())
+                .claim("rol", rol)
+                .expiresAt(Instant.now().plusSeconds(minutosExpiracion * 60))
                 .build();
-        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
-        String token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
-        return new AuthRespuestaDTO(token, "Bearer", segundos, usuario.getNombre(),
-                usuario.getEmail(), usuario.getRol().getNombre());
+        JwsHeader cabecera = JwsHeader.with(MacAlgorithm.HS256).build();
+        String token = jwtEncoder.encode(JwtEncoderParameters.from(cabecera, datos)).getTokenValue();
+        return new AuthRespuestaDTO(token, usuario.getNombre(), usuario.getEmail(), rol);
     }
 }
