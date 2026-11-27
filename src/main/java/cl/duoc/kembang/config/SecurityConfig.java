@@ -22,7 +22,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/health", "/api/v1/auth/**", "/error").permitAll()
+                .requestMatchers("/api/health", "/api/v1/auth/**", "/error", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").permitAll()
                 .requestMatchers("/api/v1/productos/**").hasAuthority("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/pedidos/**").hasAnyAuthority("ADMIN", "VENDEDOR")
