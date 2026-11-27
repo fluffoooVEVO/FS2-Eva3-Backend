@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +19,13 @@ import cl.duoc.kembang.model.Estado;
 import cl.duoc.kembang.model.Pago;
 import cl.duoc.kembang.model.Pedido;
 import cl.duoc.kembang.model.Producto;
+import cl.duoc.kembang.model.Usuario;
 import cl.duoc.kembang.repository.DetallePedidoRepository;
 import cl.duoc.kembang.repository.EstadoRepository;
 import cl.duoc.kembang.repository.PagoRepository;
 import cl.duoc.kembang.repository.PedidoRepository;
 import cl.duoc.kembang.repository.ProductoRepository;
+import cl.duoc.kembang.repository.UsuarioRepository;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -34,19 +37,24 @@ public class PedidoService {
     private final PagoRepository pagoRepository;
     private final ProductoRepository productoRepository;
     private final EstadoRepository estadoRepository;
+    private final UsuarioRepository usuarioRepository;
 
     public PedidoService(PedidoRepository pedidoRepository, DetallePedidoRepository detallePedidoRepository,
         PagoRepository pagoRepository, ProductoRepository productoRepository,
-        EstadoRepository estadoRepository) {
+        EstadoRepository estadoRepository, UsuarioRepository usuarioRepository) {
         this.pedidoRepository = pedidoRepository;
         this.detallePedidoRepository = detallePedidoRepository;
         this.pagoRepository = pagoRepository;
         this.productoRepository = productoRepository;
         this.estadoRepository = estadoRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Transactional
-    public PedidoDTO crear(CrearPedidoDTO dto) {
+    public PedidoDTO crear(CrearPedidoDTO dto, String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("No existe el usuario " + email));
+
         Estado pendiente = estadoRepository.findByNombre("PENDIENTE")
                 .orElseThrow(() -> new ResourceNotFoundException("No existe el estado PENDIENTE"));
 
@@ -69,7 +77,7 @@ public class PedidoService {
             detalles.add(new DetallePedido(null, null, producto, item.getCantidad(), precio));
         }
 
-        Pedido pedido = pedidoRepository.save(new Pedido(null, LocalDateTime.now(), total, pendiente));
+        Pedido pedido = pedidoRepository.save(new Pedido(null, LocalDateTime.now(), total, pendiente, usuario));
 
         for (DetallePedido detalle : detalles) {
             detalle.setPedido(pedido);
@@ -78,15 +86,25 @@ public class PedidoService {
 
         pagoRepository.save(new Pago(null, pedido, dto.getMetodoPago(), total, LocalDateTime.now()));
 
-        log.info("Pedido {} creado con total {}", pedido.getId(), total);
+        log.info("Pedido {} creado por {} con total {}", pedido.getId(), email, total);
         return convertirADTO(pedido, detalles, dto.getMetodoPago());
+    }
+
+    public List<PedidoDTO> listar() {
+        return pedidoRepository.findAll(Sort.by(Sort.Direction.DESC, "fecha")).stream()
+                .map(this::armarDTO)
+                .toList();
     }
 
     public PedidoDTO obtenerPorId(Long id) {
         Pedido pedido = pedidoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("No existe el pedido con id " + id));
-        List<DetallePedido> detalles = detallePedidoRepository.findByPedidoId(id);
-        String metodoPago = pagoRepository.findByPedidoId(id)
+        return armarDTO(pedido);
+    }
+
+    private PedidoDTO armarDTO(Pedido pedido) {
+        List<DetallePedido> detalles = detallePedidoRepository.findByPedidoId(pedido.getId());
+        String metodoPago = pagoRepository.findByPedidoId(pedido.getId())
                 .map(Pago::getMetodo)
                 .orElse(null);
         return convertirADTO(pedido, detalles, metodoPago);
@@ -105,7 +123,8 @@ public class PedidoService {
                         d.getPrecioUnitario(),
                         d.getPrecioUnitario() * d.getCantidad()))
                 .toList();
-        return new PedidoDTO(pedido.getId(), pedido.getFecha(), pedido.getEstado().getNombre(),
+        String cliente = pedido.getUsuario() != null ? pedido.getUsuario().getEmail() : null;
+        return new PedidoDTO(pedido.getId(), pedido.getFecha(), cliente, pedido.getEstado().getNombre(),
                 pedido.getTotal(), metodoPago, detallesDTO);
     }
 }

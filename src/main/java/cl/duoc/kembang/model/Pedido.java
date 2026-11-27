@@ -37,4 +37,8 @@ public class Pedido {
     @ManyToOne
     @JoinColumn(name = "estado_id")
     private Estado estado;
+
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
 }
