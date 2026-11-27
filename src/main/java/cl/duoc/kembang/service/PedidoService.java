@@ -14,13 +14,17 @@ import cl.duoc.kembang.dto.ItemPedidoDTO;
 import cl.duoc.kembang.dto.PedidoDTO;
 import cl.duoc.kembang.exception.ResourceNotFoundException;
 import cl.duoc.kembang.exception.StockInsuficienteException;
+import cl.duoc.kembang.model.Comuna;
 import cl.duoc.kembang.model.DetallePedido;
+import cl.duoc.kembang.model.Direccion;
 import cl.duoc.kembang.model.Estado;
 import cl.duoc.kembang.model.Pago;
 import cl.duoc.kembang.model.Pedido;
 import cl.duoc.kembang.model.Producto;
 import cl.duoc.kembang.model.Usuario;
+import cl.duoc.kembang.repository.ComunaRepository;
 import cl.duoc.kembang.repository.DetallePedidoRepository;
+import cl.duoc.kembang.repository.DireccionRepository;
 import cl.duoc.kembang.repository.EstadoRepository;
 import cl.duoc.kembang.repository.PagoRepository;
 import cl.duoc.kembang.repository.PedidoRepository;
@@ -38,16 +42,21 @@ public class PedidoService {
     private final ProductoRepository productoRepository;
     private final EstadoRepository estadoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ComunaRepository comunaRepository;
+    private final DireccionRepository direccionRepository;
 
     public PedidoService(PedidoRepository pedidoRepository, DetallePedidoRepository detallePedidoRepository,
         PagoRepository pagoRepository, ProductoRepository productoRepository,
-        EstadoRepository estadoRepository, UsuarioRepository usuarioRepository) {
+        EstadoRepository estadoRepository, UsuarioRepository usuarioRepository,
+        ComunaRepository comunaRepository, DireccionRepository direccionRepository) {
         this.pedidoRepository = pedidoRepository;
         this.detallePedidoRepository = detallePedidoRepository;
         this.pagoRepository = pagoRepository;
         this.productoRepository = productoRepository;
         this.estadoRepository = estadoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.comunaRepository = comunaRepository;
+        this.direccionRepository = direccionRepository;
     }
 
     @Transactional
@@ -77,7 +86,14 @@ public class PedidoService {
             detalles.add(new DetallePedido(null, null, producto, item.getCantidad(), precio));
         }
 
-        Pedido pedido = pedidoRepository.save(new Pedido(null, LocalDateTime.now(), total, pendiente, usuario));
+        Comuna comuna = comunaRepository.findById(dto.getDireccion().getComunaId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No existe la comuna con id " + dto.getDireccion().getComunaId()));
+        Direccion direccion = direccionRepository.save(
+                new Direccion(null, dto.getDireccion().getCalle(), dto.getDireccion().getNumero(), comuna));
+
+        Pedido pedido = pedidoRepository.save(
+                new Pedido(null, LocalDateTime.now(), total, pendiente, usuario, direccion));
 
         for (DetallePedido detalle : detalles) {
             detalle.setPedido(pedido);
@@ -124,7 +140,11 @@ public class PedidoService {
                         d.getPrecioUnitario() * d.getCantidad()))
                 .toList();
         String cliente = pedido.getUsuario() != null ? pedido.getUsuario().getEmail() : null;
-        return new PedidoDTO(pedido.getId(), pedido.getFecha(), cliente, pedido.getEstado().getNombre(),
+        String direccion = pedido.getDireccion() != null
+                ? pedido.getDireccion().getCalle() + " " + pedido.getDireccion().getNumero()
+                        + ", " + pedido.getDireccion().getComuna().getNombre()
+                : null;
+        return new PedidoDTO(pedido.getId(), pedido.getFecha(), cliente, direccion, pedido.getEstado().getNombre(),
                 pedido.getTotal(), metodoPago, detallesDTO);
     }
 }
