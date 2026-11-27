@@ -36,31 +36,31 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class PedidoService {
 
-    private final PedidoRepository pedidoRepository;
-    private final DetallePedidoRepository detallePedidoRepository;
-    private final PagoRepository pagoRepository;
-    private final ProductoRepository productoRepository;
-    private final EstadoRepository estadoRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final ComunaRepository comunaRepository;
-    private final DireccionRepository direccionRepository;
+        private final PedidoRepository pedidoRepository;
+        private final DetallePedidoRepository detallePedidoRepository;
+        private final PagoRepository pagoRepository;
+        private final ProductoRepository productoRepository;
+        private final EstadoRepository estadoRepository;
+        private final UsuarioRepository usuarioRepository;
+        private final ComunaRepository comunaRepository;
+        private final DireccionRepository direccionRepository;
 
-    public PedidoService(PedidoRepository pedidoRepository, DetallePedidoRepository detallePedidoRepository,
-        PagoRepository pagoRepository, ProductoRepository productoRepository,
-        EstadoRepository estadoRepository, UsuarioRepository usuarioRepository,
-        ComunaRepository comunaRepository, DireccionRepository direccionRepository) {
-        this.pedidoRepository = pedidoRepository;
-        this.detallePedidoRepository = detallePedidoRepository;
-        this.pagoRepository = pagoRepository;
-        this.productoRepository = productoRepository;
-        this.estadoRepository = estadoRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.comunaRepository = comunaRepository;
-        this.direccionRepository = direccionRepository;
-    }
+        public PedidoService(PedidoRepository pedidoRepository, DetallePedidoRepository detallePedidoRepository,
+                PagoRepository pagoRepository, ProductoRepository productoRepository,
+                EstadoRepository estadoRepository, UsuarioRepository usuarioRepository,
+                ComunaRepository comunaRepository, DireccionRepository direccionRepository) {
+                        this.pedidoRepository = pedidoRepository;
+                        this.detallePedidoRepository = detallePedidoRepository;
+                        this.pagoRepository = pagoRepository;
+                        this.productoRepository = productoRepository;
+                        this.estadoRepository = estadoRepository;
+                        this.usuarioRepository = usuarioRepository;
+                        this.comunaRepository = comunaRepository;
+                        this.direccionRepository = direccionRepository;
+                }
 
-    @Transactional
-    public PedidoDTO crear(CrearPedidoDTO dto, String email) {
+        @Transactional
+        public PedidoDTO crear(CrearPedidoDTO dto, String email) {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("No existe el usuario " + email));
 
@@ -71,19 +71,19 @@ public class PedidoService {
         int total = 0;
 
         for (ItemPedidoDTO item : dto.getItems()) {
-            Producto producto = productoRepository.findById(item.getProductoId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "No existe el producto con id " + item.getProductoId()));
+                Producto producto = productoRepository.findById(item.getProductoId())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "No existe el producto con id " + item.getProductoId()));
 
-            if (producto.getStock() < item.getCantidad()) {
+                if (producto.getStock() < item.getCantidad()) {
                 throw new StockInsuficienteException("Stock insuficiente para " + producto.getNombre()
                         + ": disponible " + producto.getStock() + ", solicitado " + item.getCantidad());
-            }
-            producto.setStock(producto.getStock() - item.getCantidad());
+                }
+                producto.setStock(producto.getStock() - item.getCantidad());
 
-            int precio = precioConDescuento(producto);
+                int precio = precioConDescuento(producto);
             total += precio * item.getCantidad();
-            detalles.add(new DetallePedido(null, null, producto, item.getCantidad(), precio));
+                detalles.add(new DetallePedido(null, null, producto, item.getCantidad(), precio));
         }
 
         Comuna comuna = comunaRepository.findById(dto.getDireccion().getComunaId())
@@ -96,7 +96,7 @@ public class PedidoService {
                 new Pedido(null, LocalDateTime.now(), total, pendiente, usuario, direccion));
 
         for (DetallePedido detalle : detalles) {
-            detalle.setPedido(pedido);
+                detalle.setPedido(pedido);
         }
         detallePedidoRepository.saveAll(detalles);
 
@@ -104,33 +104,33 @@ public class PedidoService {
 
         log.info("Pedido {} creado por {} con total {}", pedido.getId(), email, total);
         return convertirADTO(pedido, detalles, dto.getMetodoPago());
-    }
+        }
 
-    public List<PedidoDTO> listar() {
+        public List<PedidoDTO> listar() {
         return pedidoRepository.findAll(Sort.by(Sort.Direction.DESC, "fecha")).stream()
                 .map(this::armarDTO)
                 .toList();
-    }
+        }
 
-    public PedidoDTO obtenerPorId(Long id) {
+        public PedidoDTO obtenerPorId(Long id) {
         Pedido pedido = pedidoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("No existe el pedido con id " + id));
         return armarDTO(pedido);
-    }
+        }
 
-    private PedidoDTO armarDTO(Pedido pedido) {
+        private PedidoDTO armarDTO(Pedido pedido) {
         List<DetallePedido> detalles = detallePedidoRepository.findByPedidoId(pedido.getId());
         String metodoPago = pagoRepository.findByPedidoId(pedido.getId())
                 .map(Pago::getMetodo)
                 .orElse(null);
         return convertirADTO(pedido, detalles, metodoPago);
-    }
+        }
 
-    private int precioConDescuento(Producto producto) {
+        private int precioConDescuento(Producto producto) {
         return (int) Math.round(producto.getPrecio() * (1 - producto.getDescuento() / 100.0));
-    }
+        }
 
-    private PedidoDTO convertirADTO(Pedido pedido, List<DetallePedido> detalles, String metodoPago) {
+        private PedidoDTO convertirADTO(Pedido pedido, List<DetallePedido> detalles, String metodoPago) {
         List<DetallePedidoDTO> detallesDTO = detalles.stream()
                 .map(d -> new DetallePedidoDTO(
                         d.getProducto().getId(),
@@ -146,5 +146,5 @@ public class PedidoService {
                 : null;
         return new PedidoDTO(pedido.getId(), pedido.getFecha(), cliente, direccion, pedido.getEstado().getNombre(),
                 pedido.getTotal(), metodoPago, detallesDTO);
-    }
+        }
 }
