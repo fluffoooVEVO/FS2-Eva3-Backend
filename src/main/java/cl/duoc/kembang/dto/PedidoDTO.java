@@ -15,6 +15,7 @@ public class PedidoDTO {
     private Long id;
     private LocalDateTime fecha;
     private String cliente;
+    private String direccion;
     private String estado;
     private Integer total;
     private String metodoPago;
