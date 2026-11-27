@@ -1,7 +1,10 @@
 package cl.duoc.kembang.controller;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,8 +28,13 @@ public class PedidoController {
     }
 
     @PostMapping
-    public ResponseEntity<PedidoDTO> crear(@Valid @RequestBody CrearPedidoDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(pedidoService.crear(dto));
+    public ResponseEntity<PedidoDTO> crear(@Valid @RequestBody CrearPedidoDTO dto, Authentication authentication) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(pedidoService.crear(dto, authentication.getName()));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<PedidoDTO>> listar() {
+        return ResponseEntity.ok(pedidoService.listar());
     }
 
     @GetMapping("/{id}")
